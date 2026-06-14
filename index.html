@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flowo">
+<meta name="theme-color" content="#0d0d0d">
+<title>Flowo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    background: #0d0d0d;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #app {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* LIQUID */
+  #lbg {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 0%;
+    transition: height 1s linear;
+    z-index: 0;
+    overflow: hidden;
+  }
+  #lbg::before {
+    content: '';
+    position: absolute;
+    top: -24px; left: -15%;
+    width: 130%; height: 58px;
+    background: inherit;
+    border-radius: 50%;
+    animation: wb 4s ease-in-out infinite alternate;
+  }
+  #lbg::after {
+    content: '';
+    position: absolute;
+    top: -14px; left: -8%;
+    width: 116%; height: 40px;
+    background: inherit;
+    border-radius: 50%;
+    opacity: 0.55;
+    animation: wb 3.2s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes wb {
+    from { transform: translateX(-5%) scaleY(0.82); }
+    to   { transform: translateX(5%)  scaleY(1.18); }
+  }
+
+  /* LAYOUT */
+  #content {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 44px) 24px 0 24px;
+  }
+
+  /* STATUS BAR */
+  #sbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.8);
+  }
+  #sbar .logo {
+    font-size: 11px;
+    letter-spacing: 2px;
+    opacity: 0.35;
+    font-weight: 600;
+  }
+  #sbar .icons { display: flex; gap: 5px; font-size: 15px; }
+
+  /* TABS */
+  #tabs {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 3px;
+    margin: 18px 0 0;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.38);
+    padding: 8px 0;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab.active {
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+  }
+
+  /* TIMER AREA */
+  #timer-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  #phase-lbl {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+  }
+  #timedsp {
+    font-size: 86px;
+    font-weight: 200;
+    color: #fff;
+    letter-spacing: -3px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  #timedsp:active { opacity: 0.6; }
+  #hint {
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    margin-top: -4px;
+    letter-spacing: 0.5px;
+  }
+
+  /* PROGRESS */
+  #prog-wrap {
+    width: 200px;
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  #prog {
+    height: 100%;
+    width: 0%;
+    background: rgba(255,255,255,0.75);
+    border-radius: 2px;
+    transition: width 1s linear;
+  }
+
+  /* SESSION DOTS */
+  #dots {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    transition: background 0.3s;
+  }
+  .dot.done { background: rgba(255,255,255,0.85); }
+
+  /* COLOUR STRIP */
+  #cstrip {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0 10px;
+  }
+  .cswatch {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2.5px solid transparent;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .cswatch:active { transform: scale(0.88); }
+  .cswatch.sel { border-color: rgba(255,255,255,0.75); }
+  .cpick-wrap {
+    position: relative;
+    width: 26px; height: 26px;
+    flex-shrink: 0;
+  }
+  .cpick-wrap input[type=color] {
+    position: absolute;
+    inset: 0; width: 100%; height: 100%;
+    opacity: 0; cursor: pointer;
+    border: none; padding: 0;
+  }
+  .cpick-btn {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px dashed rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .cpick-btn svg { width: 12px; height: 12px; }
+
+  /* BUTTONS */
+  #btnrow {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0 12px;
+  }
+  #bplay {
+    width: 74px; height: 74px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+    font-size: 28px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  #bplay:active { transform: scale(0.91); }
+  .bskip {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.5);
+    font-size: 19px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .bskip:active { transform: scale(0.88); }
+
+  /* BOTTOM NAV */
+  #botbar {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+    border-top: 0.5px solid rgba(255,255,255,0.07);
+    position: relative;
+    z-index: 10;
+  }
+  .bitem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    cursor: pointer;
+  }
+  .bitem.on { color: rgba(255,255,255,0.9); }
+  .bitem svg { width: 22px; height: 22px; }
+
+  /* TOAST */
+  #toast {
+    position: absolute;
+    bottom: 90px; left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: rgba(30,30,30,0.92);
+    border: 0.5px solid rgba(255,255,255,0.12);
+    color: #fff;
+    font-size: 13px;
+    padding: 9px 20px;
+    border-radius: 22px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: all 0.35s;
+    z-index: 60;
+    pointer-events: none;
+  }
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* PICKER OVERLAY */
+  #overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 70;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  #overlay.open { display: flex; }
+  .sheet {
+    width: 100%;
+    background: #1c1c1e;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 24px;
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 30px);
+  }
+  .sheet-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 22px;
+  }
+  .srow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .srow label {
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    width: 48px;
+  }
+  .srow input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    outline: none;
+  }
+  .srow input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+  }
+  .srow .sv {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    min-width: 38px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .sbtns {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .sb {
+    flex: 1;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .sb-c { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.7); }
+  .sb-s { background: #fff; color: #0d0d0d; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="lbg"></div>
+
+  <div id="content">
+    <div id="sbar">
+      <span id="clock">9:41</span>
+      <span class="logo">FLOWO</span>
+      <span class="icons">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="2" y="7" width="18" height="11" rx="2"/><path d="M22 11v4"/></svg>
+      </span>
+    </div>
+
+    <div id="tabs">
+      <div class="tab active" id="t-focus" onclick="switchMode('focus')">Focus</div>
+      <div class="tab" id="t-short" onclick="switchMode('short')">Short break</div>
+      <div class="tab" id="t-long" onclick="switchMode('long')">Long break</div>
+    </div>
+
+    <div id="timer-area">
+      <div id="phase-lbl">focus time</div>
+      <div id="timedsp" onclick="openPicker()">25:00</div>
+      <div id="hint">tap time to edit</div>
+      <div id="prog-wrap"><div id="prog"></div></div>
+      <div id="dots">
+        <div class="dot" id="d0"></div>
+        <div class="dot" id="d1"></div>
+        <div class="dot" id="d2"></div>
+        <div class="dot" id="d3"></div>
+      </div>
+    </div>
+
+    <div id="cstrip"></div>
+
+    <div id="btnrow">
+      <button class="bskip" onclick="resetTimer()" aria-label="Reset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><path d="M4 5v5h5"/><path d="M3.07 10.99A9 9 0 1 0 5 5.44"/></svg>
+      </button>
+      <button id="bplay" onclick="toggleTimer()" aria-label="Start">
+        <svg id="play-svg" viewBox="0 0 24 24" fill="currentColor" width="30" height="30"><polygon points="5,3 19,12 5,21"/></svg>
+      </button>
+      <button class="bskip" onclick="skipFwd()" aria-label="Skip forward">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><polygon points="5,4 15,12 5,20" fill="currentColor" stroke="none"/><line x1="19" y1="4" x2="19" y2="20"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="botbar">
+    <div class="bitem on">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>Timer</span>
+    </div>
+    <div class="bitem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>Stats</span>
+    </div>
+    <div class="bitem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      <span>Settings</span>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="overlay">
+    <div class="sheet">
+      <div class="sheet-title">set duration</div>
+      <div class="srow">
+        <label>Hours</label>
+        <input type="range" id="sl-h" min="0" max="5" value="0" step="1" oninput="ss('h')">
+        <span class="sv" id="vh">0</span>
+      </div>
+      <div class="srow">
+        <label>Mins</label>
+        <input type="range" id="sl-m" min="0" max="59" value="25" step="1" oninput="ss('m')">
+        <span class="sv" id="vm">25</span>
+      </div>
+      <div class="srow">
+        <label>Secs</label>
+        <input type="range" id="sl-s" min="0" max="59" value="0" step="1" oninput="ss('s')">
+        <span class="sv" id="vs">0</span>
+      </div>
+      <div class="sbtns">
+        <button class="sb sb-c" onclick="closeOverlay()">Cancel</button>
+        <button class="sb sb-s" onclick="applyTime()">Set time</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MODES = {
+  focus: { label: 'focus time',   secs: 25*60, def: '#993C1D' },
+  short: { label: 'short break',  secs: 5*60,  def: '#085041' },
+  long:  { label: 'long break',   secs: 15*60, def: '#3C3489' }
+};
+const SWATCHES = ['#993C1D','#D85A30','#085041','#1D9E75','#3C3489','#7F77DD','#72243E','#444441'];
+
+let mode = 'focus';
+let totalSecs = 25*60, remaining = 25*60;
+let running = false, iv = null, sessCount = 0;
+let customTimes   = { focus: 25*60, short: 5*60, long: 15*60 };
+let modeColours   = { focus: '#993C1D', short: '#085041', long: '#3C3489' };
+let lastCustomCol = null;
+
+const lbg   = document.getElementById('lbg');
+const tdsp  = document.getElementById('timedsp');
+const plbl  = document.getElementById('phase-lbl');
+const prog  = document.getElementById('prog');
+const hint  = document.getElementById('hint');
+const toast = document.getElementById('toast');
+const overlay = document.getElementById('overlay');
+const playSvg = document.getElementById('play-svg');
+
+const PLAY_PATH  = '<polygon points="5,3 19,12 5,21"/>';
+const PAUSE_PATH = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+
+function fmt(s) {
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sc = s%60;
+  if (h > 0) return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');
+  return String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');
+}
+
+function setColour(c) { lbg.style.background = c; }
+
+function updateFill() {
+  const p = ((totalSecs - remaining) / totalSecs) * 100;
+  lbg.style.height = p + '%';
+  prog.style.width = Math.round(p) + '%';
+}
+
+function buildSwatches() {
+  const strip = document.getElementById('cstrip');
+  strip.innerHTML = '';
+  SWATCHES.forEach(c => {
+    const d = document.createElement('div');
+    d.className = 'cswatch' + (modeColours[mode] === c ? ' sel' : '');
+    d.style.background = c;
+    d.onclick = () => applyColour(c);
+    strip.appendChild(d);
+  });
+  const wrap = document.createElement('div');
+  wrap.className = 'cpick-wrap';
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = lastCustomCol || modeColours[mode];
+  inp.oninput = e => applyColour(e.target.value);
+  const btn = document.createElement('div');
+  btn.className = 'cpick-btn';
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2.5" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  wrap.appendChild(inp);
+  wrap.appendChild(btn);
+  strip.appendChild(wrap);
+}
+
+function applyColour(c) {
+  modeColours[mode] = c;
+  lastCustomCol = c;
+  setColour(c);
+  buildSwatches();
+}
+
+function switchMode(m) {
+  if (running) { clearInterval(iv); running = false; }
+  mode = m;
+  totalSecs = customTimes[m];
+  remaining = totalSecs;
+  lbg.style.transition = 'height 0.3s ease';
+  lbg.style.height = '0%';
+  prog.style.width = '0%';
+  setColour(modeColours[m]);
+  tdsp.textContent = fmt(remaining);
+  plbl.textContent = MODES[m].label;
+  playSvg.innerHTML = PLAY_PATH;
+  hint.textContent = 'tap time to edit';
+  ['t-focus','t-short','t-long'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById('t-'+(m==='focus'?'focus':m==='short'?'short':'long')).classList.add('active');
+  buildSwatches();
+  setTimeout(() => { lbg.style.transition = 'height 1s linear'; }, 350);
+}
+
+function toggleTimer() {
+  if (running) {
+    clearInterval(iv); running = false;
+    playSvg.innerHTML = PLAY_PATH;
+    hint.textContent = 'tap time to edit';
+    return;
+  }
+  if (remaining <= 0) { resetTimer(); return; }
+  running = true;
+  hint.textContent = 'running...';
+  playSvg.innerHTML = PAUSE_PATH;
+  lbg.style.transition = 'height 1s linear';
+  iv = setInterval(tick, 1000);
+  tick();
+}
+
+function tick() {
+  if (remaining <= 0) {
+    clearInterval(iv); running = false;
+    playSvg.innerHTML = PLAY_PATH;
+    hint.textContent = 'tap time to edit';
+    onDone(); return;
+  }
+  remaining--;
+  tdsp.textContent = fmt(remaining);
+  updateFill();
+}
+
+function onDone() {
+  lbg.style.height = '100%';
+  prog.style.width = '100%';
+  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([200,100,200]);
+  if (mode === 'focus') {
+    sessCount = Math.min(sessCount + 1, 4);
+    updateDots();
+    showToast('Nice work! Take a break.');
+    setTimeout(() => switchMode(sessCount >= 4 ? 'long' : 'short'), 1400);
+  } else {
+    showToast('Break over. Back to it!');
+    setTimeout(() => switchMode('focus'), 1400);
+  }
+}
+
+function resetTimer() {
+  clearInterval(iv); running = false;
+  remaining = totalSecs;
+  tdsp.textContent = fmt(remaining);
+  lbg.style.transition = 'height 0.3s ease';
+  lbg.style.height = '0%';
+  prog.style.width = '0%';
+  playSvg.innerHTML = PLAY_PATH;
+  hint.textContent = 'tap time to edit';
+  setTimeout(() => { lbg.style.transition = 'height 1s linear'; }, 350);
+}
+
+function skipFwd() {
+  clearInterval(iv); running = false;
+  remaining = 0;
+  tdsp.textContent = fmt(0);
+  updateFill();
+  playSvg.innerHTML = PLAY_PATH;
+  hint.textContent = 'tap time to edit';
+  onDone();
+}
+
+function updateDots() {
+  for (let i = 0; i < 4; i++)
+    document.getElementById('d'+i).classList.toggle('done', i < sessCount);
+}
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2600);
+}
+
+function openPicker() {
+  if (running) return;
+  const h = Math.floor(customTimes[mode]/3600);
+  const m = Math.floor((customTimes[mode]%3600)/60);
+  const s = customTimes[mode]%60;
+  document.getElementById('sl-h').value = h; document.getElementById('vh').textContent = h;
+  document.getElementById('sl-m').value = m; document.getElementById('vm').textContent = m;
+  document.getElementById('sl-s').value = s; document.getElementById('vs').textContent = s;
+  overlay.classList.add('open');
+}
+
+function closeOverlay() { overlay.classList.remove('open'); }
+
+function ss(k) {
+  document.getElementById('v'+k).textContent = parseInt(document.getElementById('sl-'+k).value);
+}
+
+function applyTime() {
+  const h = parseInt(document.getElementById('sl-h').value);
+  const m = parseInt(document.getElementById('sl-m').value);
+  const s = parseInt(document.getElementById('sl-s').value);
+  const t = h*3600 + m*60 + s;
+  if (t <= 0) { closeOverlay(); return; }
+  customTimes[mode] = t;
+  totalSecs = t;
+  remaining = t;
+  tdsp.textContent = fmt(t);
+  lbg.style.height = '0%';
+  prog.style.width = '0%';
+  closeOverlay();
+  showToast('Time set to ' + fmt(t));
+}
+
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  document.getElementById('clock').textContent =
+    (h % 12 || 12) + ':' + String(m).padStart(2,'0');
+}
+updateClock();
+setInterval(updateClock, 10000);
+
+setColour(modeColours[mode]);
+buildSwatches();
+tdsp.textContent = fmt(remaining);
+</script>
+</body>
+</html>
